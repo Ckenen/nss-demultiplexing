@@ -1,0 +1,6 @@
+Total reads: 10000 (100.00%)
+Too short: 392 (3.92%)
+No barcode: 3309 (33.09%)
+Invalid distance: 71 (0.71%)
+Invalid cell: 0 (0.00%)
+Pass: 6228 (62.28%)
