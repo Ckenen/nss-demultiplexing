@@ -30,5 +30,5 @@ You can run the workflow by following command:
 
 ## How to determine threshold?
 
-
+In `analysis.ipynb`, we analyzed the barcode characteristics in 6 runs and determined reasonable thresholds for the demultiplexing and trimming procedure.
 

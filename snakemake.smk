@@ -8,6 +8,7 @@ run_cells = ["20220708_GM12878/%s" % c for c in cells]
 rule all:
     input:
         expand("results/fbilr/{run}.matrix.gz", run=runs),
+        expand("results/fbilr/{run}.stats.tsv.gz", run=runs),
         expand("results/splitted/{run}.d", run=runs),
         expand("results/combined/{run_cell}.fastq.gz", run_cell=run_cells),
         expand("results/trimmed/{run_cell}.fastq.gz", run_cell=run_cells),
@@ -27,6 +28,18 @@ rule fbilr:
         """
         fbilr -t {threads} -w 200 -b {input.fa1},{input.fa2} {input.fq} 2> {log} \
             | gzip -c > {output.tsv}
+        """
+
+rule stat_matrix:
+    input:
+        mtx = "results/fbilr/{run}.matrix.gz"
+    output:
+        tsv = "results/fbilr/{run}.stats.tsv.gz"
+    shell:
+        """
+        zcat {input.mtx} | awk '$2>=400' | awk -v OFS=',' '{{print $3,$4,$5,$8,$9,$10,$11,$14}}' \
+            | sort | uniq -c | awk -v OFS=',' '{{print $2,$1}}' \
+            | sed 's/,/\\t/g' | gzip -c > {output.tsv}
         """
 
 rule split:

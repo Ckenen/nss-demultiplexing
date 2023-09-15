@@ -1,4 +1,5 @@
 .snakemake/
+.ipynb_checkpoints/
 results/
 
 # Byte-compiled / optimized / DLL files
