@@ -12,7 +12,7 @@ DEBUG = False
 def load_fastq(path):
     with FastqFile(path) as f:
         for i, read in enumerate(f):
-            if DEBUG and i >= 10000:
+            if DEBUG and i >= 100000:
                 break
             yield read
 
@@ -51,7 +51,7 @@ def write_fastq(fw, name, sequence, quality):
 
 MIN_LENGTH = 200
 MAX_ED = 8
-MAX_CHIMIRIC = 6
+MAX_CHIMIRIC = 8
 
 def main():
     infile, outfile = sys.argv[1:]
@@ -75,7 +75,10 @@ def main():
     counter_length = defaultdict(int)
     counter_linker = defaultdict(int)
     counter_chimeric = defaultdict(int)
-    
+
+    counter1 = defaultdict(int) # max linker edit distance at edge
+    counter2 = defaultdict(int) # min linker edit distance at inner
+        
     fw = PigzFile(outfile, "wt")
     
     for read in load_fastq(infile):
@@ -96,6 +99,7 @@ def main():
             x2, y2 = x2 + offset, y2 + offset
             
             counter_linker[(ed1, ed2)] += 1
+            counter1[max(ed1, ed2)] += 1
             
             if ed1 <= MAX_ED and ed2 <= MAX_ED:
                 # trim
@@ -106,6 +110,7 @@ def main():
                 x1, y1, ed1 = edlib_align(linker1, seq)
                 x2, y2, ed2 = edlib_align(linker2, seq)
                 counter_chimeric[(ed1, ed2)] += 1
+                counter2[min(ed1, ed2)] += 1
                 if ed1 <= MAX_CHIMIRIC or ed2 <= MAX_CHIMIRIC:
                     n_chimeric += 1
                     continue
@@ -144,8 +149,29 @@ def main():
         total = sum(counter_chimeric.values())
         for (ed1, ed2), count in sorted(counter_chimeric.items()):
             fw.write("\t".join(map(str, [ed1, ed2, count, cal_perc(count, total)])) + "\n")
-        
-    print("Finished!")
+
+    print("-" * 80)
+    print("Maximum edit distance at read edge:")
+    print("-" * 80)
+    r0 = 0
+    t = sum(counter1.values())
+    for k, v in sorted(counter1.items()):
+        r = v / t
+        r0 += r
+        print(k, v, r, r0, sep="\t")
+
+    print("-" * 80)
+    print("Minimum edit distance at read inner:")
+    print("-" * 80)
+    r0 = 0
+    t = sum(counter2.values())
+    for k, v in sorted(counter2.items()):
+        r = v / t
+        r0 += r
+        print(k, v, r, r0, sep="\t")
+
+
+    # print("Finished!")
     
 
 if __name__ == '__main__':

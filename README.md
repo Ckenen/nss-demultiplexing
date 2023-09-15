@@ -2,6 +2,11 @@
 
 NanoStrand-seq utilized the dual-barcode combination to split single-cell reads from mixed reads and determine the read direction.
 
+## Installation
+
+    # Added following line to your '.bashrc' file:
+    export PATH="`pwd`/scripts:${PATH}"
+
 ## Preparation
 
 Firstly, we should prepare the following 4 files in advance:
@@ -15,7 +20,7 @@ No.|File|Description
 
 Here, we show an example of the above file in the `data` directory.
 
-The `reads.fastq.gz` is located at `data/20220708_GM12878.downsample.fastq.gz`, and the content is:
+The `reads.fastq.gz` is located at `data/20220708_GM12878.10k.fastq.gz`, and the content is:
 
     @acbfb367-2b0d-48de-913b-72e4730574c1 runid=fa2a5215cdbe4ea7685499d65557d30979bd24cd read=9 ch=90 start_time=2022-07-12T14:34:22.236730+08:00 flow_cell_id=PAK14180 protocol_group_id=FKDN220228112-1A sample_id=FOND220228112-1A parent_read_id=acbfb367-2b0d-48de-913b-72e4730574c1
     GTACTTCGTTCAGTTACGTATTGCTACACTCTTTCCCTACACGACGCTCTTCAGGGAACAAACCAAGTTACGTTCGTCGGCAGCGTCAGATGTGTATAAGGAGACAGGAGGCTGAGGCATGAAAATCACTTGAACCAGGGAGGTGGGGGTTACAGTGAGCTGAAATCATGCCACTGCACTCCAGCCTGGGTGACAGAGAGAGACTGTCTCAAAAAAAAAAAAA
@@ -89,7 +94,7 @@ The `barcode_config.tsv` is located at `data/20220708_GM12878.barcode_config.tsv
 
 Firstly, we find the barcodes in the reads by using FBILR:
 
-    fbilr -t 4 -w 200 -b data/20220708_GM12878.p7.fasta,data/20220708_GM12878.p5.fasta data/20220708_GM12878.downsample.fastq.gz | gzip -c > data/20220708_GM12878.matrix.tsv.gz
+    fbilr -t 4 -w 200 -b data/20220708_GM12878.p7.fasta,data/20220708_GM12878.p5.fasta data/20220708_GM12878.10k.fastq.gz | gzip -c > data/20220708_GM12878.matrix.tsv.gz
 
 The content of `data/20220708_GM12878.matrix.tsv.gz` is:
 
@@ -106,21 +111,31 @@ The content of `data/20220708_GM12878.matrix.tsv.gz` is:
     b101d65d-08ff-4de0-ab1f-d0b49a83054a	2201	Bar12	F	H	47	71	3	Bar21	R	T	2139	2161
     81ad8ab0-5517-48ea-9ad6-ac60d9910518	2501	Bar13	F	H	52	76	0	Bar28	R	T	2442	2461
 
+    ...
+
 Then, we split the single-cell reads by the following command:
 
-    ./scripts/nss_split_reads.py -f data/20220708_GM12878.downsample.fastq.gz -m data/20220708_GM12878.matrix.tsv.gz -b data/20220708_GM12878.barcode_config.tsv -o data/splitted.d -r data/splitted.reads.tsv -e 5 -l 400 > data/splitted.log
+    ./scripts/nss_split_reads.py -f data/20220708_GM12878.10k.fastq.gz -m data/20220708_GM12878.matrix.tsv.gz -b data/20220708_GM12878.barcode_config.tsv -o data/splitted.d -r data/splitted.reads.tsv -e 5 -l 400 > data/splitted.log
 
-    # For each cell
-    cat in data/splitted.d/20220708_GM12878.sc001_F.fastq > data/combined/20220708_GM12878.sc001.fastq
+    # For one cell
+    cat data/splitted.d/20220708_GM12878.sc001_F.fastq > data/combined/20220708_GM12878.sc001.fastq
     cat data/splitted.d/20220708_GM12878.sc001_R.fastq | ./scripts/reverse_fastq.py >> data/combined/20220708_GM12878.sc001.fastq
     pigz -p 8 data/combined/20220708_GM12878.sc001.fastq
+
+    # For all cells
+    for fq in data/splitted.d/*_F.fastq; do
+        cell=`basename $fq _F.fastq`
+        cat data/splitted.d/${cell}_F.fastq > data/combined/${cell}.fastq
+        cat data/splitted.d/${cell}_R.fastq | ./scripts/reverse_fastq.py >> data/combined/${cell}.fastq
+        pigz -p 8 data/combined/${cell}.fastq
+    done
 
 
 Finally, we remove the linker sequences and potential chimeric reads by the following command: 
 
-    ./scripts/nss_trim_reads.py data/combined/20220708_GM12878.sc001.fastq data/trimmed/20220708_GM12878.sc001.fastq > data/trimmed/20220708_GM12878.sc001.log
+    ./scripts/nss_trim_reads.py data/combined/20220708_GM12878.sc001.fastq.gz data/trimmed/20220708_GM12878.sc001.fastq.gz > data/trimmed/20220708_GM12878.sc001.log
 
-## Determing threshold
+## How to determine threshold?
 
 
 
