@@ -9,15 +9,15 @@ rule all:
     input:
         expand("results/fbilr/{run}.matrix.gz", run=runs),
         expand("results/fbilr/{run}.stats.tsv.gz", run=runs),
-        expand("results/splitted/{run}.d", run=runs),
+        expand("results/splitted/{run}", run=runs),
         expand("results/combined/{run_cell}.fastq.gz", run_cell=run_cells),
-        expand("results/trimmed/{run_cell}.fastq.gz", run_cell=run_cells),
+        expand("results/trimmed/{run_cell}", run_cell=run_cells),
 
 rule fbilr:
     input:
         fq = "data/{run}.10k.fastq.gz",
-        fa1 = "data/{run}.p7.fasta",
-        fa2 = "data/{run}.p5.fasta"
+        fa1 = "data/{run}.1st.fasta",
+        fa2 = "data/{run}.2nd.fasta"
     output:
         tsv = "results/fbilr/{run}.matrix.gz"
     log:
@@ -48,27 +48,25 @@ rule split:
         tsv = "results/fbilr/{run}.matrix.gz",
         cfg = "data/{run}.barcode_config.tsv"
     output:
-        out = directory("results/splitted/{run}.d"),
-        tsv = "results/splitted/{run}.reads.tsv"
+        out = directory("results/splitted/{run}")
     log:
         "results/splitted/{run}.log"
     shell:
         """
-        ./scripts/nss_split_reads.py -f {input.fq} -m {input.tsv} -b {input.cfg} \
-            -o {output.out} -r {output.tsv} -e 6 -l 400 &> {log}
+        ./scripts/nss_split_reads.py -e 6 -l 400 {input.fq} {input.tsv} {input.cfg} {output.out} &> {log}
         """
 
 rule combine:
     input:
-        fqs = "results/splitted/{run}.d"
+        fqs = "results/splitted/{run}"
     output:
         fq = "results/combined/{run}/{cell}.fastq.gz"
     threads:
         4
     shell:
         """
-        fq1={input.fqs}/{wildcards.cell}_F.fastq
-        fq2={input.fqs}/{wildcards.cell}_R.fastq
+        fq1={input.fqs}/fastqs/{wildcards.cell}_F.fastq
+        fq2={input.fqs}/fastqs/{wildcards.cell}_R.fastq
         ( cat $fq1; cat $fq2 | ./scripts/reverse_fastq.py ) | pigz -p {threads} -c > {output.fq}
         """
 
@@ -76,10 +74,10 @@ rule trim:
     input:
         fq = "results/combined/{run}/{cell}.fastq.gz"
     output:
-        fq = "results/trimmed/{run}/{cell}.fastq.gz"
+        out = directory("results/trimmed/{run}/{cell}")
     log:
         "results/trimmed/{run}/{cell}.log"
     shell:
         """
-        ./scripts/nss_trim_reads.py {input.fq} {output.fq} &> {log}
+        ./scripts/nss_trim_reads.py {input.fq} {output.out} &> {log}
         """
