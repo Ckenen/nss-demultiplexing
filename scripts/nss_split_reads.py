@@ -49,8 +49,8 @@ def demultiplexing(f_fastq,
         
     # dual barcode pair
     cell_list = []
-    cell_reads_counter = dict()
-    ed_counter = defaultdict(int)
+    counter_reads = dict()
+    counter_ed = defaultdict(int)
     bc2cell = dict()  # barcode to cell
     fws = dict()
     
@@ -62,8 +62,8 @@ def demultiplexing(f_fastq,
             fw_f = open(os.path.join(fqdir, "%s_F.fastq" % cell), "w+")
             fw_r = open(os.path.join(fqdir, "%s_R.fastq" % cell), "w+")
             fws[cell] = [fw_f, fw_r]
-            cell_reads_counter[cell] = [0, 0, 0]  # total forward reverse
-    cell_reads_counter["unclassified"] = [0, 0, 0]
+            counter_reads[cell] = [0, 0, 0]  # total forward reverse
+    counter_reads["unclassified"] = [0, 0, 0]
     unfw = None
     if keep_unclassified:
         unfw = open(os.path.join(fqdir, "unclassified.fastq") , "w+")
@@ -94,7 +94,7 @@ def demultiplexing(f_fastq,
                 n_no_direction += 1
             else:
                 ed = max(ed1, ed2)
-                ed_counter[ed] += 1
+                counter_ed[ed] += 1
                 if ed > max_edit_distance:
                     n_large_ed += 1
                 else:                    
@@ -106,17 +106,17 @@ def demultiplexing(f_fastq,
                             x, y = min(y1, y2), max(x1, x2)
                             seq = seq[x:y]
                             qua = qua[x:y]
-                        cell_reads_counter[cell][0] += 1
+                        counter_reads[cell][0] += 1
                         if direction == "F":
                             fw = fws[cell][0]
-                            cell_reads_counter[cell][1] += 1
+                            counter_reads[cell][1] += 1
                         else:
                             fw = fws[cell][1]
-                            cell_reads_counter[cell][2] += 1
+                            counter_reads[cell][2] += 1
                         n_pass += 1      
         if fw is None:
             fw = unfw
-            cell_reads_counter["unclassified"][0] += 1 
+            counter_reads["unclassified"][0] += 1 
         if fw:
             fw.write("@%s\n%s\n+\n%s\n" % (name, seq, qua))            
     for fw1, fw2 in fws.values():
@@ -142,17 +142,17 @@ def demultiplexing(f_fastq,
         with open(os.path.join(outdir, "reads.tsv"), "w+") as fw:
             fw.write("\t".join(["Cell", "Reads", "Forward", "Reverse"]) + "\n")
             for cell in cell_list:
-                v1, v2, v3 = cell_reads_counter[cell]
+                v1, v2, v3 = counter_reads[cell]
                 fw.write("\t".join(map(str, [cell, v1, v2, v3])) + "\n")
-            v1, v2, v3 = cell_reads_counter["unclassified"]
+            v1, v2, v3 = counter_reads["unclassified"]
             fw.write("\t".join(map(str, ["unclassified", v1, v2, v3])) + "\n")
           
     if True:  
         with open(os.path.join(outdir, "edit_distance.tsv"), "w+") as fw:
             fw.write("ED\tCount\tRatio\tCumulative\n")
             r0 = 0
-            for k, v in sorted(ed_counter.items()):
-                r = v / sum(ed_counter.values())
+            for k, v in sorted(counter_ed.items()):
+                r = v / sum(counter_ed.values())
                 r0 += r
                 fw.write("%d\t%d\t%f\t%f\n" % (k, v, r, r0))
 

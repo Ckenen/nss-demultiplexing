@@ -8,7 +8,10 @@ from pyBioInfo.IO.File import FastqFile
 
 
 DEBUG = False
-
+MIN_LENGTH = 200
+MAX_LINKER_ED = 8
+MAX_CHIMIRIC_LINKER_ED = 8
+COMPRESS_FASTQ = True
 
 def load_fastq(path):
     with FastqFile(path) as f:
@@ -49,10 +52,7 @@ def write_fastq(fw, name, sequence, quality):
     fw.write("%s\n" % sequence)
     fw.write("+\n")
     fw.write("%s\n" % quality)
-
-MIN_LENGTH = 200
-MAX_LINKER_ED = 8
-MAX_CHIMIRIC_LINKER_ED = 8
+    
 
 def main():
     infile, outdir = sys.argv[1:]
@@ -80,7 +80,6 @@ def main():
     counter_length = defaultdict(int)
     counter_linker = defaultdict(int)
     counter_chimeric = defaultdict(int)
-
     counter_linker_edge = defaultdict(int) # max linker edit distance at edge
     counter_linker_inner = defaultdict(int) # min linker edit distance at inner
         

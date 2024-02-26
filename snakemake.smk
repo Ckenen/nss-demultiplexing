@@ -30,7 +30,7 @@ rule fbilr:
             | gzip -c > {output.tsv}
         """
 
-rule stat_matrix:
+rule stats:
     input:
         mtx = "results/fbilr/{run}.matrix.gz"
     output:
